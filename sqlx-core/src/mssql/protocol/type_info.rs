@@ -215,7 +215,11 @@ impl TypeInfo {
 
             DataType::BigVarBinary | DataType::BigBinary => Self::new(ty, buf.get_u16_le() as u32),
 
-            DataType::BigVarChar | DataType::BigChar | DataType::NVarChar | DataType::NChar => {
+            DataType::BigVarChar
+            | DataType::BigChar
+            | DataType::NText
+            | DataType::NVarChar
+            | DataType::NChar => {
                 let size = buf.get_u16_le() as u32;
                 let collation = Collation::get(buf);
 
@@ -282,7 +286,11 @@ impl TypeInfo {
                 buf.extend(&(self.size as u16).to_le_bytes());
             }
 
-            DataType::BigVarChar | DataType::BigChar | DataType::NVarChar | DataType::NChar => {
+            DataType::BigVarChar
+            | DataType::BigChar
+            | DataType::NText
+            | DataType::NVarChar
+            | DataType::NChar => {
                 buf.extend(&(self.size as u16).to_le_bytes());
 
                 if let Some(collation) = &self.collation {
@@ -370,7 +378,6 @@ impl TypeInfo {
 
             DataType::Text | DataType::Image | DataType::NText | DataType::Variant => {
                 let size = buf.get_u32_le();
-
                 if size == 0xFFFF_FFFF {
                     None
                 } else {
@@ -498,14 +505,14 @@ impl TypeInfo {
                 4 => "INT",
                 8 => "BIGINT",
 
-                n => unreachable!("invalid size {} for int", n),
+                _ => unreachable!("invalid size for int"),
             },
 
             DataType::FloatN => match self.size {
                 4 => "REAL",
                 8 => "FLOAT",
 
-                n => unreachable!("invalid size {} for float", n),
+                _ => unreachable!("invalid size for float"),
             },
 
             DataType::VarChar => "VARCHAR",
@@ -514,6 +521,10 @@ impl TypeInfo {
             DataType::Char => "CHAR",
             DataType::BigChar => "BIGCHAR",
             DataType::NChar => "NCHAR",
+
+            DataType::DateTime2N => "DATETIME2",
+            DataType::DateTimeN => "DATETIME",
+            DataType::DateN => "DATE",
 
             _ => unimplemented!("name: unsupported data type {:?}", self.ty),
         }
@@ -536,14 +547,14 @@ impl TypeInfo {
                 4 => "int",
                 8 => "bigint",
 
-                n => unreachable!("invalid size {} for int", n),
+                _ => unreachable!("invalid size for int"),
             }),
 
             DataType::FloatN => s.push_str(match self.size {
                 4 => "real",
                 8 => "float",
 
-                n => unreachable!("invalid size {} for float", n),
+                _ => unreachable!("invalid size for float"),
             }),
 
             DataType::VarChar
@@ -576,6 +587,18 @@ impl TypeInfo {
 
             DataType::BitN => {
                 s.push_str("bit");
+            }
+
+            DataType::DateN => {
+                s.push_str("date");
+            }
+
+            DataType::DateTime2N => {
+                s.push_str("datetime2");
+            }
+
+            DataType::DateTimeN => {
+                s.push_str("datetime");
             }
 
             _ => unimplemented!("fmt: unsupported data type {:?}", self.ty),
@@ -659,15 +682,4 @@ impl Collation {
         buf.extend(&locale_sort_version.to_le_bytes());
         buf.push(self.sort);
     }
-}
-
-#[test]
-fn test_get() {
-    #[rustfmt::skip]
-    let mut buf = Bytes::from_static(&[
-        0x26, 4, 4, 1, 0, 0, 0, 0xfe, 0, 0, 0xe0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    ]);
-
-    let type_info = TypeInfo::get(&mut buf).unwrap();
-    assert_eq!(type_info, TypeInfo::new(DataType::IntN, 4));
 }

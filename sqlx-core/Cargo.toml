@@ -45,7 +45,7 @@ mysql = [
     "rsa",
 ]
 sqlite = ["libsqlite3-sys", "futures-executor", "flume"]
-mssql = ["uuid", "encoding_rs", "regex"]
+mssql = ["uuid", "encoding_rs", "regex", "chrono"]
 any = []
 
 # types

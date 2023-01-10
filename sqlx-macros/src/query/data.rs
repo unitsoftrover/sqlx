@@ -149,6 +149,7 @@ pub mod offline {
         }
     }
 
+    #[allow(dead_code)]
     impl<DB: DatabaseExt> QueryData<DB>
     where
         Describe<DB>: serde::Serialize + serde::de::DeserializeOwned,
