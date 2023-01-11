@@ -23,7 +23,9 @@ impl MssqlBufExt for Bytes {
             n -= 1;
         }
 
-        String::from_utf16(&raw).map_err(Error::protocol)
+        String::from_utf16(&raw).map_err(|err|{
+            println!("==============from_utf16 {}", err);
+            Error::protocol(err)})
     }
 
     fn get_b_varchar(&mut self) -> Result<String, Error> {

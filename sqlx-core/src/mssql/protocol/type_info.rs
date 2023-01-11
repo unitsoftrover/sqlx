@@ -1,9 +1,11 @@
 use bitflags::bitflags;
 use bytes::{Buf, Bytes};
 use encoding_rs::Encoding;
+use uuid::Timestamp;
 
 use crate::encode::{Encode, IsNull};
 use crate::error::Error;
+use crate::mssql::io::MssqlBufExt;
 use crate::mssql::Mssql;
 
 bitflags! {
@@ -214,12 +216,21 @@ impl TypeInfo {
             }
 
             DataType::BigVarBinary | DataType::BigBinary => Self::new(ty, buf.get_u16_le() as u32),
-
-            DataType::BigVarChar
-            | DataType::BigChar
-            | DataType::NText
-            | DataType::NVarChar
-            | DataType::NChar => {
+            DataType::NText => {
+                let size = buf.get_u32_le();
+                let collation = Collation::get(buf);
+                let _parts = buf.get_u8();
+                let _table_name = buf.get_us_varchar();
+                // println!(" ##################ntext size:{} collation:{:?} parts:{}, table_name:{:?}", size, collation, _parts, _table_name);
+                Self {
+                    ty,
+                    size,
+                    collation: Some(collation),
+                    scale: 0,
+                    precision: 0,
+                }
+            }
+            DataType::BigVarChar | DataType::BigChar | DataType::NVarChar | DataType::NChar => {
                 let size = buf.get_u16_le() as u32;
                 let collation = Collation::get(buf);
 
@@ -377,11 +388,14 @@ impl TypeInfo {
             }
 
             DataType::Text | DataType::Image | DataType::NText | DataType::Variant => {
+                let _text_pointer = buf.get_b_varbyte();
+                let _timestamp = buf.get_u64();
                 let size = buf.get_u32_le();
                 if size == 0xFFFF_FFFF {
                     None
                 } else {
-                    Some(buf.split_to(size as usize))
+                    let data = buf.split_to(size as usize);
+                    Some(data)
                 }
             }
         }
@@ -525,6 +539,7 @@ impl TypeInfo {
             DataType::DateTime2N => "DATETIME2",
             DataType::DateTimeN => "DATETIME",
             DataType::DateN => "DATE",
+            DataType::NText => "NTEXT",
 
             _ => unimplemented!("name: unsupported data type {:?}", self.ty),
         }
@@ -601,6 +616,9 @@ impl TypeInfo {
                 s.push_str("datetime");
             }
 
+            DataType::NText => {
+                s.push_str("ntext");
+            }
             _ => unimplemented!("fmt: unsupported data type {:?}", self.ty),
         }
     }

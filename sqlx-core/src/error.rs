@@ -125,6 +125,9 @@ impl Error {
     #[allow(dead_code)]
     #[inline]
     pub(crate) fn protocol(err: impl Display) -> Self {
+
+            println!("==============protocol {}", err);
+            
         Error::Protocol(err.to_string())
     }
 

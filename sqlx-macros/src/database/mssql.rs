@@ -10,6 +10,7 @@ impl_database_ext! {
         f32,
         f64,
         String,
+        // String |ntext,
         #[cfg(all(feature = "chrono", not(feature = "time")))]
         sqlx::types::chrono::NaiveTime,
 

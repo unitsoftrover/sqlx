@@ -224,6 +224,7 @@ fn get_column_type<DB: DatabaseExt>(i: usize, column: &DB::Column) -> TokenStrea
 
     <DB as DatabaseExt>::return_type_for_id(&type_info).map_or_else(
         || {
+            
             let message =
                 if let Some(feature_gate) = <DB as DatabaseExt>::get_feature_gate(&type_info) {
                     format!(
