@@ -122,7 +122,7 @@ impl ColumnData {
         // TODO: crypto_meta_data
 
         let name = buf.get_b_varchar()?;
-        println!("column name:{}", name);
+        // println!("column name:{}", name);
         Ok(Self {
             user_type,
             flags,

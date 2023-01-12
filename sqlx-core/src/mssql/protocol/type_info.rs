@@ -1,7 +1,6 @@
 use bitflags::bitflags;
 use bytes::{Buf, Bytes};
 use encoding_rs::Encoding;
-use uuid::Timestamp;
 
 use crate::encode::{Encode, IsNull};
 use crate::error::Error;
