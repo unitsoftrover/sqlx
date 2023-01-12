@@ -388,8 +388,13 @@ impl TypeInfo {
 
             DataType::Text | DataType::Image | DataType::NText | DataType::Variant => {
                 let _text_pointer = buf.get_b_varbyte();
-                let _timestamp = buf.get_u64();
-                let size = buf.get_u32_le();
+                let size: u32;
+                if _text_pointer.len() != 0 {
+                    let _timestamp = buf.get_u64();
+                    size = buf.get_u32_le();
+                } else {
+                    size = 0xFFFF_FFFF;
+                }
                 if size == 0xFFFF_FFFF {
                     None
                 } else {
