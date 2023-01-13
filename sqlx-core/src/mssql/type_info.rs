@@ -13,7 +13,8 @@ impl TypeInfo for MssqlTypeInfo {
     }
 
     fn name(&self) -> &str {
-        self.0.name()
+        let a = self.0.name();
+        return a;
     }
 }
 

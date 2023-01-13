@@ -185,8 +185,14 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
             let mut nullable = Vec::with_capacity(metadata.columns.len());
 
             for col in metadata.columns.iter() {
+                // if col.flags.contains(Flags::NULLABLE) {
+                //     println!("col: {} nullable.\n", col.name);
+                // } else {
+                //     println!("col: {} not nullable################\n", col.name);
+                // }
                 nullable.push(Some(col.flags.contains(Flags::NULLABLE)));
             }
+            // println!("nullable*********{:?}\n", nullable);
 
             Ok(Describe {
                 nullable,
