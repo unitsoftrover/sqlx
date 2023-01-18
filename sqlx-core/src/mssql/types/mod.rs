@@ -7,6 +7,7 @@ mod float;
 mod int;
 mod str;
 mod uint;
+mod decimal;
 
 #[cfg(feature = "chrono")]
 mod chrono;

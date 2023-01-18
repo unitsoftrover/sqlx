@@ -2950,6 +2950,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
+ "rust_decimal",
  "serde",
  "serde_json",
  "sha2",

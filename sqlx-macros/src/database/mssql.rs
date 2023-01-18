@@ -1,3 +1,4 @@
+use sqlx::types::BigDecimal;
 use sqlx_core as sqlx;
 
 impl_database_ext! {
@@ -22,6 +23,8 @@ impl_database_ext! {
 
         #[cfg(all(feature = "chrono", not(feature = "time")))]
         sqlx::types::chrono::DateTime<sqlx::types::chrono::Utc>,
+
+        BigDecimal,
     },
     ParamChecking::Weak,
     feature-types: _info => None,

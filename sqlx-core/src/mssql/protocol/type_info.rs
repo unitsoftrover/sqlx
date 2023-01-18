@@ -547,6 +547,11 @@ impl TypeInfo {
             DataType::DateN => "DATE",
             DataType::NText => "NTEXT",
 
+            DataType::Decimal => "DECIMAL",
+            DataType::DecimalN => "DECIMALN",
+            DataType::Numeric => "NUMERIC",
+            DataType::NumericN => "NUMERICN",
+
             _ => unimplemented!("name: unsupported data type {:?}", self.ty),
         }
     }
@@ -625,6 +630,19 @@ impl TypeInfo {
             DataType::NText => {
                 s.push_str("ntext");
             }
+            DataType::Decimal => {
+                s.push_str("decimal");
+            }
+            DataType::DecimalN => {
+                s.push_str(&format!("decimal({}, {})", self.precision, self.scale));
+            }
+            DataType::Numeric => {
+                s.push_str("numeric");
+            }
+            DataType::NumericN => {
+                s.push_str("numericn");
+            }
+
             _ => unimplemented!("fmt: unsupported data type {:?}", self.ty),
         }
     }
