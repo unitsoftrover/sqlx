@@ -16,7 +16,7 @@ authors = [
 features = ["all-databases", "all-types", "offline", "runtime-tokio-native-tls"]
 
 [features]
-default = ["migrate"]
+default = ["migrate", "all-databases","all-types", "runtime-actix-native-tls"]
 migrate = ["sha2", "crc"]
 
 # databases

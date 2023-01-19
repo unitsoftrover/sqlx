@@ -1,5 +1,4 @@
 use bigdecimal::BigDecimal;
-use bigdecimal_::num_traits::Pow;
 use bigdecimal_::ToPrimitive;
 use bytes::BufMut;
 
@@ -37,8 +36,9 @@ impl Type<Mssql> for BigDecimal {
 
 impl Encode<'_, Mssql> for BigDecimal {
     fn encode_by_ref(&self, buf: &mut Vec<u8>) -> IsNull {
-        let size = Self::type_info().0.size;
-        let scale = Self::type_info().0.scale;
+        let ty: MssqlTypeInfo = <Self as Type<Mssql>>::type_info();
+        let size = ty.0.size;
+        let scale = ty.0.scale;
 
         match self.sign() {
             num_bigint::Sign::Plus => {
