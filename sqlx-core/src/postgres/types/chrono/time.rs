@@ -20,6 +20,7 @@ impl PgHasArrayType for NaiveTime {
     }
 }
 
+#[allow(deprecated)]
 impl Encode<'_, Postgres> for NaiveTime {
     fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
         // TIME is encoded as the microseconds since midnight
@@ -36,6 +37,8 @@ impl Encode<'_, Postgres> for NaiveTime {
     }
 }
 
+
+#[allow(deprecated)]
 impl<'r> Decode<'r, Postgres> for NaiveTime {
     fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
         Ok(match value.format() {

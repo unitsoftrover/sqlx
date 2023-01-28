@@ -34,6 +34,7 @@ impl<Tz: TimeZone> PgHasArrayType for DateTime<Tz> {
     }
 }
 
+#[allow(deprecated)]
 impl Encode<'_, Postgres> for NaiveDateTime {
     fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
         // FIXME: We should *really* be returning an error, Encode needs to be fallible
@@ -51,6 +52,8 @@ impl Encode<'_, Postgres> for NaiveDateTime {
     }
 }
 
+
+#[allow(deprecated)]
 impl<'r> Decode<'r, Postgres> for NaiveDateTime {
     fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
         Ok(match value.format() {

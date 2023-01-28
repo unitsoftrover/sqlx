@@ -111,7 +111,7 @@ impl TypeInfo {
 
     pub(crate) fn encoding(&self) -> Result<&'static Encoding, Error> {
         match self.ty {
-            DataType::NChar | DataType::NVarChar => Ok(encoding_rs::UTF_16LE),
+            DataType::NChar | DataType::NVarChar | DataType::NText => Ok(encoding_rs::UTF_16LE),
 
             DataType::VarChar | DataType::Char | DataType::BigChar | DataType::BigVarChar => {
                 // unwrap: impossible to unwrap here, collation will be set

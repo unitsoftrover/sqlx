@@ -20,6 +20,7 @@ impl PgHasArrayType for NaiveDate {
     }
 }
 
+#[allow(deprecated)]
 impl Encode<'_, Postgres> for NaiveDate {
     fn encode_by_ref(&self, buf: &mut PgArgumentBuffer) -> IsNull {
         // DATE is encoded as the days since epoch
@@ -32,6 +33,8 @@ impl Encode<'_, Postgres> for NaiveDate {
     }
 }
 
+
+#[allow(deprecated)]
 impl<'r> Decode<'r, Postgres> for NaiveDate {
     fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
         Ok(match value.format() {

@@ -16,7 +16,7 @@ authors = [
 proc-macro = true
 
 [features]
-default = ["runtime-tokio-native-tls", "migrate"]
+default = ["migrate"]
 migrate = ["sha2", "sqlx-core/migrate"]
 
 # runtimes

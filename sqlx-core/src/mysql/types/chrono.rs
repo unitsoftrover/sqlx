@@ -93,6 +93,8 @@ impl Encode<'_, MySql> for NaiveTime {
     }
 }
 
+
+#[allow(deprecated)]
 impl<'r> Decode<'r, MySql> for NaiveTime {
     fn decode(value: MySqlValueRef<'r>) -> Result<Self, BoxDynError> {
         match value.format() {
@@ -205,6 +207,8 @@ impl Encode<'_, MySql> for NaiveDateTime {
     }
 }
 
+
+#[allow(deprecated)]
 impl<'r> Decode<'r, MySql> for NaiveDateTime {
     fn decode(value: MySqlValueRef<'r>) -> Result<Self, BoxDynError> {
         match value.format() {
@@ -241,6 +245,7 @@ fn encode_date(date: &NaiveDate, buf: &mut Vec<u8>) {
     buf.push(date.day() as u8);
 }
 
+#[allow(deprecated)]
 fn decode_date(mut buf: &[u8]) -> Option<NaiveDate> {
     if buf.len() == 0 {
         // MySQL specifies that if there are no bytes, this is all zeros
@@ -265,6 +270,7 @@ fn encode_time(time: &NaiveTime, include_micros: bool, buf: &mut Vec<u8>) {
     }
 }
 
+#[allow(deprecated)]
 fn decode_time(len: u8, mut buf: &[u8]) -> NaiveTime {
     let hour = buf.get_u8();
     let minute = buf.get_u8();

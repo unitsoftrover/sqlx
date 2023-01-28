@@ -52,25 +52,28 @@ impl Socket {
         {
             use std::net::Shutdown;
 
-            match self {
+            return match self {
                 Socket::Tcp(s) => s.shutdown(Shutdown::Both),
 
                 #[cfg(unix)]
                 Socket::Unix(s) => s.shutdown(Shutdown::Both),
-            }
+            };
         }
 
         #[cfg(feature = "_rt-tokio")]
         {
             use sqlx_rt::AsyncWriteExt;
 
-            match self {
+            return match self {
                 Socket::Tcp(s) => s.shutdown().await,
 
                 #[cfg(unix)]
                 Socket::Unix(s) => s.shutdown().await,
-            }
+            };
         }
+
+        #[allow(unreachable_code)]
+        Ok(())
     }
 }
 

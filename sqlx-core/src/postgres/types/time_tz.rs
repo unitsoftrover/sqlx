@@ -75,6 +75,8 @@ mod chrono {
         }
     }
 
+    
+    #[allow(deprecated)]
     impl<'r> Decode<'r, Postgres> for PgTimeTz<NaiveTime, FixedOffset> {
         fn decode(value: PgValueRef<'r>) -> Result<Self, BoxDynError> {
             match value.format() {

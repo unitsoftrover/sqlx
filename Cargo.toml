@@ -1,22 +1,22 @@
-[workspace]
-members = [
-    ".",
-    "sqlx-core",
-    "sqlx-rt",
-    "sqlx-macros",
-    "sqlx-test",
-    "sqlx-cli",
-    "sqlx-bench",
-    "examples/mysql/todos",
-    "examples/postgres/axum-social-with-tests",
-    "examples/postgres/files",
-    "examples/postgres/json",
-    "examples/postgres/listen",
-    "examples/postgres/todos",
-    "examples/postgres/mockable-todos",
-    "examples/postgres/transaction",
-    "examples/sqlite/todos",
-]
+# [workspace]
+# members = [
+#     ".", 
+#     "sqlx-core",
+#     "sqlx-rt",
+#     "sqlx-macros",
+#     "sqlx-test",
+#     "sqlx-cli",
+#     "sqlx-bench",
+#     "examples/mysql/todos",
+#     "examples/postgres/axum-social-with-tests",
+#     "examples/postgres/files",
+#     "examples/postgres/json",
+#     "examples/postgres/listen",
+#     "examples/postgres/todos",
+#     "examples/postgres/mockable-todos",
+#     "examples/postgres/transaction",
+#     "examples/sqlite/todos",
+# ]
 
 [package]
 name = "sqlx"
@@ -41,7 +41,7 @@ features = ["all", "runtime-tokio-native-tls"]
 rustdoc-args = ["--cfg", "docsrs"]
 
 [features]
-default = ["macros", "migrate", 'runtime-tokio-rustls']
+default = ["macros", "migrate","runtime-tokio-rustls"]
 macros = ["sqlx-macros"]
 migrate = ["sqlx-macros/migrate", "sqlx-core/migrate"]
 
@@ -125,8 +125,8 @@ bstr = ["sqlx-core/bstr"]
 git2 = ["sqlx-core/git2"]
 
 [dependencies]
-sqlx-core = { version = "0.6.2", path = "sqlx-core", default-features = false }
-sqlx-macros = { version = "0.6.2", path = "sqlx-macros", default-features = false, optional = true }
+sqlx-core = { version = "0.6.2", path = "sqlx-core", default-features = true }
+sqlx-macros = { version = "0.6.2", path = "sqlx-macros", default-features = true, optional = true }
 
 [dev-dependencies]
 anyhow = "1.0.52"
