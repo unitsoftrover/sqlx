@@ -24,7 +24,6 @@ impl MssqlBufExt for Bytes {
         }
 
         String::from_utf16(&raw).map_err(|err|{
-            println!("==============from_utf16 {}", err);
             Error::protocol(err)})
     }
 

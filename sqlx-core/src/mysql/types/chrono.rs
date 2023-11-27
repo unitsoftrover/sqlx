@@ -31,7 +31,7 @@ impl<'r> Decode<'r, MySql> for DateTime<Utc> {
     fn decode(value: MySqlValueRef<'r>) -> Result<Self, BoxDynError> {
         let naive: NaiveDateTime = Decode::<MySql>::decode(value)?;
 
-        Ok(DateTime::from_utc(naive, Utc))
+        Ok(crate::types::chrono::TimeZone::from_utc_datetime(&Utc, &naive))
     }
 }
 

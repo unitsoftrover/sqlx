@@ -313,3 +313,4 @@ required-features = ["mssql"]
 name = "mssql-macros"
 path = "tests/mssql/macros.rs"
 required-features = ["mssql", "macros"]
+

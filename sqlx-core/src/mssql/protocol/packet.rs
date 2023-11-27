@@ -4,7 +4,7 @@ use bytes::{Buf, Bytes};
 use crate::error::Error;
 use crate::io::{Decode, Encode};
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub(crate) struct PacketHeader {
     // Type defines the type of message. Type is a 1-byte unsigned char.
     pub(crate) r#type: PacketType,

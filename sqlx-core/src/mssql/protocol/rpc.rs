@@ -74,6 +74,7 @@ impl Encode<'_> for RpcRequest<'_> {
         .encode(buf);
 
         match &self.procedure {
+            
             Either::Left(name) => {
                 buf.extend(&(name.len() as u16).to_le_bytes());
                 buf.put_utf16_str(name);

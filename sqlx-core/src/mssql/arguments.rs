@@ -29,7 +29,7 @@ impl MssqlArguments {
         self.data.put_b_varchar(name); // [ParamName]
         self.data.push(0); // [StatusFlags]
 
-        ty.0.put(&mut self.data); // [TYPE_INFO]
+        ty.0.put(&mut self.data); // [TYPE_INFO]       
         ty.0.put_value(&mut self.data, value); // [ParamLenData]
     }
 
@@ -69,7 +69,7 @@ impl MssqlArguments {
         //  @p1, @p2, ... @pN
 
         self.name.clear();
-        self.name.push_str("@p");
+        self.name.push_str("@P");
 
         self.ordinal += 1;
         self.name.push_str(itoa::Buffer::new().format(self.ordinal));

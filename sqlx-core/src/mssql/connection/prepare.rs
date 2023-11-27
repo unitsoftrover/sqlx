@@ -1,6 +1,6 @@
 use crate::decode::Decode;
 use crate::error::Error;
-use crate::mssql::protocol::done::Status;
+use crate::mssql::protocol::done::Status as DoneStatus;
 use crate::mssql::protocol::message::Message;
 use crate::mssql::protocol::packet::PacketType;
 use crate::mssql::protocol::rpc::{OptionFlags, Procedure, RpcRequest};
@@ -10,6 +10,8 @@ use either::Either;
 use once_cell::sync::Lazy;
 use regex::Regex;
 use std::sync::Arc;
+use crate::mssql::protocol::packet::PacketHeader;
+use crate::mssql::protocol::packet::Status;
 
 pub(crate) async fn prepare(
     conn: &mut MssqlConnection,
@@ -51,9 +53,15 @@ pub(crate) async fn prepare(
     args.add_unnamed(params);
     args.add_unnamed(sql);
     args.add_unnamed(0x0001_i32); // 1 = SEND_METADATA
-
+    let header = PacketHeader {
+        r#type: PacketType::Rpc,
+        status: Status::END_OF_MESSAGE,
+        length: 0,
+        server_process_id: 0,
+        packet_id: 1,
+    };
     conn.stream.write_packet(
-        PacketType::Rpc,
+        header,
         RpcRequest {
             transaction_descriptor: conn.stream.transaction_descriptor,
             arguments: &args,
@@ -64,7 +72,7 @@ pub(crate) async fn prepare(
             procedure: Either::Right(Procedure::Prepare),
             options: OptionFlags::empty(),
         },
-    );
+    ).await?;
 
     conn.stream.flush().await?;
     conn.stream.wait_until_ready().await?;
@@ -77,7 +85,7 @@ pub(crate) async fn prepare(
 
         match message {
             Message::DoneProc(done) | Message::Done(done) => {
-                if !done.status.contains(Status::DONE_MORE) {
+                if !done.status.contains(DoneStatus::DONE_MORE) {
                     // done with prepare
                     conn.stream.handle_done(&done);
                     break;
@@ -99,16 +107,22 @@ pub(crate) async fn prepare(
     if let Some(id) = id {
         let mut args = MssqlArguments::default();
         args.add_unnamed(id);
-
+        let header = PacketHeader {
+            r#type: PacketType::Rpc,
+            status: Status::END_OF_MESSAGE,
+            length: 0,
+            server_process_id: 0,
+            packet_id: 1,
+        };
         conn.stream.write_packet(
-            PacketType::Rpc,
+            header,
             RpcRequest {
                 transaction_descriptor: conn.stream.transaction_descriptor,
                 arguments: &args,
                 procedure: Either::Right(Procedure::Unprepare),
                 options: OptionFlags::empty(),
             },
-        );
+        ).await?;
 
         conn.stream.flush().await?;
         conn.stream.wait_until_ready().await?;
@@ -119,7 +133,7 @@ pub(crate) async fn prepare(
 
             match message {
                 Message::DoneProc(done) | Message::Done(done) => {
-                    if !done.status.contains(Status::DONE_MORE) {
+                    if !done.status.contains(DoneStatus::DONE_MORE) {
                         // done with unprepare
                         conn.stream.handle_done(&done);
                         break;

@@ -4,7 +4,7 @@ use crate::executor::{Execute, Executor};
 use crate::logger::QueryLogger;
 use crate::mssql::connection::prepare::prepare;
 use crate::mssql::protocol::col_meta_data::Flags;
-use crate::mssql::protocol::done::Status;
+use crate::mssql::protocol::done::Status as DoneStatus;
 use crate::mssql::protocol::message::Message;
 use crate::mssql::protocol::packet::PacketType;
 use crate::mssql::protocol::rpc::{OptionFlags, Procedure, RpcRequest};
@@ -19,6 +19,8 @@ use futures_core::stream::BoxStream;
 use futures_util::TryStreamExt;
 use std::borrow::Cow;
 use std::sync::Arc;
+use crate::mssql::protocol::packet::PacketHeader;
+use crate::mssql::protocol::packet::Status;
 
 impl MssqlConnection {
     async fn run(&mut self, query: &str, arguments: Option<MssqlArguments>) -> Result<(), Error> {
@@ -30,37 +32,79 @@ impl MssqlConnection {
             let mut proc_args = MssqlArguments::default();
 
             // SQL
-            proc_args.add_unnamed(query);
+            proc_args.add_named("stmt", query);
 
             if !arguments.data.is_empty() {
                 // Declarations
                 //  NAME TYPE, NAME TYPE, ...
-                proc_args.add_unnamed(&*arguments.declarations);
+                proc_args.add_named("params", &*arguments.declarations);
 
                 // Add the list of SQL parameters _after_ our RPC parameters
                 proc_args.append(&mut arguments);
             }
+            let header = PacketHeader {
+                r#type: PacketType::Rpc,
+                status: Status::END_OF_MESSAGE,
+                length: 0,
+                server_process_id: 0,
+                packet_id: self.stream.new_packet_id(),
+            };
+
+            // let payload = RpcRequest {
+            //     transaction_descriptor: self.stream.transaction_descriptor,
+            //     arguments: &proc_args,
+            //     procedure: proc,
+            //     options: OptionFlags::empty(),
+            // };
+            // let mut payload_buf = Vec::<u8>::new();
+            // payload.encode(&mut payload_buf);
+            // let packet_size = self.stream.packet_size - 8;        
+            // while !payload_buf.is_empty(){
+            //     let writable = std::cmp::min(packet_size, payload_buf.len());
+            //     let payload_split = payload_buf.split_off(writable);
+            //     let mut header1 = header.clone();
+            //     if payload_split.is_empty(){
+            //         header1.status = Status::END_OF_MESSAGE;                    
+            //     }
+            //     else {
+            //         header1.status = Status::NORMAL;
+            //     }
+                
+            //     self.stream.write_packet1(
+            //         header1,
+            //         &payload_buf,
+            //     );
+            //     payload_buf = payload_split;
+            //     self.stream.flush().await?;
+            // }           
 
             self.stream.write_packet(
-                PacketType::Rpc,
+                header,
                 RpcRequest {
                     transaction_descriptor: self.stream.transaction_descriptor,
                     arguments: &proc_args,
                     procedure: proc,
                     options: OptionFlags::empty(),
                 },
-            );
+            ).await?;
         } else {
+            let header = PacketHeader {
+                r#type: PacketType::SqlBatch,
+                status: Status::END_OF_MESSAGE,
+                length: 0,
+                server_process_id: 0,
+                packet_id: 1,
+            };
+
             self.stream.write_packet(
-                PacketType::SqlBatch,
+                header,
                 SqlBatch {
                     transaction_descriptor: self.stream.transaction_descriptor,
                     sql: query,
                 },
-            );
-        }
-
-        self.stream.flush().await?;
+            ).await?;
+            self.stream.flush().await?;
+        }        
 
         Ok(())
     }
@@ -78,6 +122,7 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
         E: Execute<'q, Self::Database>,
     {
         let sql = query.sql();
+        // println!("fetch_many sql:{}", sql);
         let arguments = query.take_arguments();
         let mut logger = QueryLogger::new(sql, self.log_settings.clone());
 
@@ -98,11 +143,11 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
                     }
 
                     Message::Done(done) | Message::DoneProc(done) => {
-                        if !done.status.contains(Status::DONE_MORE) {
+                        if !done.status.contains(DoneStatus::DONE_MORE) {
                             self.stream.handle_done(&done);
                         }
 
-                        if done.status.contains(Status::DONE_COUNT) {
+                        if done.status.contains(DoneStatus::DONE_COUNT) {
                             let rows_affected = done.affected_rows;
                             logger.increase_rows_affected(rows_affected);
                             r#yield!(Either::Left(MssqlQueryResult {
@@ -110,13 +155,13 @@ impl<'c> Executor<'c> for &'c mut MssqlConnection {
                             }));
                         }
 
-                        if !done.status.contains(Status::DONE_MORE) {
+                        if !done.status.contains(DoneStatus::DONE_MORE) {
                             break;
                         }
                     }
 
                     Message::DoneInProc(done) => {
-                        if done.status.contains(Status::DONE_COUNT) {
+                        if done.status.contains(DoneStatus::DONE_COUNT) {
                             let rows_affected = done.affected_rows;
                             logger.increase_rows_affected(rows_affected);
                             r#yield!(Either::Left(MssqlQueryResult {

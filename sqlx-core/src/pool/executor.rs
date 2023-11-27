@@ -26,6 +26,7 @@ where
 
         Box::pin(try_stream! {
             let mut conn = pool.acquire().await?;
+            // log::info!("acquire conn: {:?}", conn);
             let mut s = conn.fetch_many(query);
 
             while let Some(v) = s.try_next().await? {

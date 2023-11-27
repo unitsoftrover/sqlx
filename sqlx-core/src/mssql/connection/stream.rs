@@ -41,6 +41,8 @@ pub(crate) struct MssqlStream {
     // we need to store this as its needed when decoding <Row>
     pub(crate) columns: Arc<Vec<MssqlColumn>>,
     pub(crate) column_names: Arc<HashMap<UStr, usize>>,
+    pub(crate) packet_size: usize,
+    pub(crate) packet_id : u8
 }
 
 impl MssqlStream {
@@ -57,27 +59,81 @@ impl MssqlStream {
             pending_done_count: 0,
             transaction_descriptor: 0,
             transaction_depth: 0,
+            packet_size : 8192,
+            packet_id : 0
         })
+    }
+
+    pub(crate) fn new_packet_id(&mut self) -> u8 {
+        self.packet_id = self.packet_id.wrapping_add(1);
+        return self.packet_id;
     }
 
     // writes the packet out to the write buffer
     // will (eventually) handle packet chunking
-    pub(crate) fn write_packet<'en, T: Encode<'en>>(&mut self, ty: PacketType, payload: T) {
-        // TODO: Support packet chunking for large packet sizes
-        //       We likely need to double-buffer the writes so we know to chunk
-
-        // write out the packet header, leaving room for setting the packet length later
-
+    #[allow(dead_code)]
+    pub(crate) fn write_packet2<'en, T: Encode<'en>>(&mut self, header: PacketHeader, payload: T) -> Result<(), Error> {
+                
+        // write out the packet header, leaving room for setting the packet length later       
         let mut len_offset = 0;
-
         self.inner.write_with(
-            PacketHeader {
-                r#type: ty,
-                status: Status::END_OF_MESSAGE,
-                length: 0,
-                server_process_id: 0,
-                packet_id: 1,
-            },
+            // PacketHeader {
+            //     r#type: ty,
+            //     status: Status::END_OF_MESSAGE,
+            //     length: 0,
+            //     server_process_id: 0,
+            //     packet_id: 1,
+            // },
+            header,
+            &mut len_offset,
+        );
+
+        // write out the payload
+        self.inner.write(payload);
+
+        // overwrite the packet length now that we know it
+        let len = self.inner.wbuf.len();
+        self.inner.wbuf[len_offset..(len_offset + 2)].copy_from_slice(&(len as u16).to_be_bytes());
+
+        Ok(())
+    }
+
+    
+    // writes the packet out to the write buffer
+    // will (eventually) handle packet chunking
+    pub(crate) async fn write_packet<'en, T: Encode<'en>>(&mut self, header: PacketHeader, payload: T)->Result<(), Error> {
+        let mut payload_buf = Vec::<u8>::new();
+        payload.encode(&mut payload_buf);
+        let packet_size = self.packet_size - 8;        
+        while !payload_buf.is_empty(){
+            let writable = std::cmp::min(packet_size, payload_buf.len());
+            let payload_split = payload_buf.split_off(writable);
+            let mut header1 = header.clone();
+            if payload_split.is_empty(){
+                header1.status = Status::END_OF_MESSAGE;                    
+            }
+            else {
+                header1.status = Status::NORMAL;
+            }
+            
+            self.write_packet1(
+                header1,
+                &payload_buf,
+                );
+            payload_buf = payload_split;            
+            self.flush().await?;           
+        }        
+        Ok(())
+    }
+
+    // writes the packet out to the write buffer
+    // will (eventually) handle packet chunking
+    pub(crate) fn write_packet1(&mut self, header: PacketHeader, payload: &[u8]) {
+
+        // write out the packet header, leaving room for setting the packet length later       
+        let mut len_offset = 0;
+        self.inner.write_with(
+            header,
             &mut len_offset,
         );
 
@@ -146,6 +202,9 @@ impl MssqlStream {
                                 self.transaction_descriptor = 0;
                             }
 
+                            EnvChange::PacketSize(size)=>{
+                                self.packet_size =  size.parse().unwrap_or(0);
+                            }
                             _ => {}
                         }
 
@@ -229,7 +288,8 @@ impl Deref for MssqlStream {
     }
 }
 
-impl DerefMut for MssqlStream {
+impl DerefMut for MssqlStream {    
+
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.inner
     }

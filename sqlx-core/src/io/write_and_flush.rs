@@ -25,7 +25,8 @@ impl<S: AsyncWrite + Unpin> Future for WriteAndFlush<'_, S> {
         loop {
             let read = buf.fill_buf()?;
 
-            if !read.is_empty() {
+            if !read.is_empty() {              
+
                 let written = ready!(Pin::new(&mut *stream).poll_write(cx, read)?);
                 buf.consume(written);
             } else {

@@ -122,12 +122,12 @@ impl Decode<'_, Mssql> for BigDecimal {
             decimal_value += base * high_half as i128;
             base *= 16i128;
         }
-        println!("sign:{} decimal value:{}", sign, decimal_value);
+        // println!("sign:{} decimal value:{}", sign, decimal_value);
         let decimal = bigdecimal::BigDecimal::new(
             num_bigint::BigInt::from(sign * decimal_value),
             scale.into(),
         );
-        println!("decimal result:{}", decimal.to_string());
+        // println!("decimal result:{}", decimal.to_string());
         return Ok(decimal);
     }
 }

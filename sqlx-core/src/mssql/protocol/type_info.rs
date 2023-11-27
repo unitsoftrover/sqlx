@@ -194,11 +194,8 @@ impl TypeInfo {
             | DataType::BitN
             | DataType::FloatN
             | DataType::MoneyN
-            | DataType::DateTimeN
-            | DataType::Char
-            | DataType::VarChar
-            | DataType::Binary
-            | DataType::VarBinary => Self::new(ty, buf.get_u8() as u32),
+            | DataType::DateTimeN                        
+             => Self::new(ty, buf.get_u8() as u32),
 
             DataType::Decimal | DataType::Numeric | DataType::DecimalN | DataType::NumericN => {
                 let size = buf.get_u8() as u32;
@@ -214,22 +211,40 @@ impl TypeInfo {
                 }
             }
 
-            DataType::BigVarBinary | DataType::BigBinary => Self::new(ty, buf.get_u16_le() as u32),
-            DataType::NText => {
+            DataType::Binary
+            | DataType::VarBinary
+            | DataType::BigVarBinary 
+            | DataType::BigBinary => Self::new(ty, buf.get_u16_le() as u32),
+            
+            DataType::NText |
+            DataType::Text |
+            DataType::Image
+             => {
                 let size = buf.get_u32_le();
-                let collation = Collation::get(buf);
-                let _parts = buf.get_u8();
-                let _table_name = buf.get_us_varchar();
-                // println!(" ##################ntext size:{} collation:{:?} parts:{}, table_name:{:?}", size, collation, _parts, _table_name);
+                let collation = {if ty == DataType::Image {None} else{Some(Collation::get(buf))}};
+                let num_of_parts = buf.get_u8();
+                // table name
+                let mut table_name = String::default();
+                for _ in 0..num_of_parts {
+                    table_name.push_str(buf.get_us_varchar().unwrap_or_default().as_str());
+                }
+                // let _table_name = buf.get_us_varchar();
+                // println!(" ##################ntext size:{} collation:{:?} parts:{}, table_name:{:?}", size, collation, num_of_parts, table_name);
                 Self {
                     ty,
                     size,
-                    collation: Some(collation),
+                    collation: collation,
                     scale: 0,
                     precision: 0,
                 }
             }
-            DataType::BigVarChar | DataType::BigChar | DataType::NVarChar | DataType::NChar => {
+            DataType::Char
+            | DataType::VarChar
+            | DataType::BigVarChar 
+            | DataType::BigChar 
+            | DataType::NVarChar 
+            | DataType::NChar            
+             => {
                 let size = buf.get_u16_le() as u32;
                 let collation = Collation::get(buf);
 
@@ -279,10 +294,7 @@ impl TypeInfo {
             | DataType::FloatN
             | DataType::MoneyN
             | DataType::DateTimeN
-            | DataType::Char
-            | DataType::VarChar
-            | DataType::Binary
-            | DataType::VarBinary => {
+             => {
                 buf.push(self.size as u8);
             }
 
@@ -291,24 +303,62 @@ impl TypeInfo {
                 buf.push(self.precision);
                 buf.push(self.scale);
             }
-
-            DataType::BigVarBinary | DataType::BigBinary => {
+            
+            | DataType::Binary
+            | DataType::VarBinary
+            | DataType::BigVarBinary 
+            | DataType::BigBinary => {
                 buf.extend(&(self.size as u16).to_le_bytes());
+            }
+            
+            DataType::Char
+            | DataType::VarChar
+            | DataType::NVarChar 
+            | DataType::NChar
+            => {
+                if self.size <= 4000 {
+                    buf.extend(8000_u16.to_le_bytes());
+                    // buf.extend(&[0u8; 5]); 
+
+                    if let Some(collation) = &self.collation {
+                        collation.put(buf);
+                    } else {
+                        buf.extend(&0_u32.to_le_bytes());
+                        buf.push(0);
+                    }
+                }
+                else{
+                    buf.extend(&[0xff_u8; 2]);
+                    // buf.extend(&[0u8; 5]);
+                    if let Some(collation) = &self.collation {
+                        collation.put(buf);
+                    } else {
+                        buf.extend(&0_u32.to_le_bytes());
+                        buf.push(0);
+                    }
+
+                    // we cannot cheaply predetermine the length of the UCS2 string beforehand
+                    // (2 * bytes(UTF8) is not always right) - so just let the SQL server handle it
+                    buf.extend(0xfffffffffffffffe_u64.to_le_bytes().as_slice());
+                }
             }
 
             DataType::BigVarChar
             | DataType::BigChar
             | DataType::NText
-            | DataType::NVarChar
-            | DataType::NChar => {
-                buf.extend(&(self.size as u16).to_le_bytes());
-
+             => {
+                buf.extend(&[0xff_u8; 2]);
+                // buf.extend(&[0u8; 5]);
                 if let Some(collation) = &self.collation {
                     collation.put(buf);
                 } else {
                     buf.extend(&0_u32.to_le_bytes());
                     buf.push(0);
                 }
+
+                // we cannot cheaply predetermine the length of the UCS2 string beforehand
+                // (2 * bytes(UTF8) is not always right) - so just let the SQL server handle it
+                buf.extend(0xfffffffffffffffe_u64.to_le_bytes().as_slice());
             }
 
             _ => {
@@ -359,19 +409,17 @@ impl TypeInfo {
                 }
             }
 
-            DataType::Char | DataType::VarChar | DataType::Binary | DataType::VarBinary => {
-                let size = buf.get_u8();
+            // DataType::Char | DataType::VarChar | DataType::Binary | DataType::VarBinary => {
+            //     let size = buf.get_u8();
 
-                if size == 0xFF {
-                    None
-                } else {
-                    Some(buf.split_to(size as usize))
-                }
-            }
-
-            DataType::BigVarBinary
+            //     if size == 0xFF {
+            //         None
+            //     } else {
+            //         Some(buf.split_to(size as usize))
+            //     }
+            // }
+            DataType::Char | DataType::VarChar | DataType::Binary | DataType::VarBinary
             | DataType::BigVarChar
-            | DataType::BigBinary
             | DataType::BigChar
             | DataType::NVarChar
             | DataType::NChar
@@ -383,6 +431,54 @@ impl TypeInfo {
                     None
                 } else {
                     Some(buf.split_to(size as usize))
+                }
+            }
+            DataType::BigVarBinary
+            | DataType::BigBinary
+             => {
+                if self.size < 0xFFFF{
+
+                    let size = buf.get_u16_le();
+
+                    if size == 0xFF_FF {
+                        None
+                    } else {
+                        Some(buf.split_to(size as usize))
+                    }
+                }
+                else{
+                    let len = buf.get_u64_le();
+
+                    let mut data = match len {
+                        // NULL
+                        0xffffffffffffffff => return None,
+                        // Unknown size
+                        0xfffffffffffffffe => Vec::new(),
+                        // Known size
+                        _ => Vec::with_capacity(len as usize),
+                    };
+
+                    let mut chunk_data_left = 0;
+
+                    loop {
+                        if chunk_data_left == 0 {
+                            // We have no chunk. Start a new one.
+                            let chunk_size = buf.get_u32_le() as usize;
+
+                            if chunk_size == 0 {
+                                break; // found a sentinel, we're done
+                            } else {
+                                chunk_data_left = chunk_size
+                            }
+                        } else {
+                            // Just read a byte
+                            let byte = buf.get_u8();
+                            chunk_data_left -= 1;
+
+                            data.push(byte);
+                        }
+                    }
+                    Some(data.into())
                 }
             }
 
@@ -436,19 +532,30 @@ impl TypeInfo {
             | DataType::TimeN
             | DataType::DateTime2N
             | DataType::DateTimeOffsetN
-            | DataType::Char
-            | DataType::VarChar
-            | DataType::Binary
-            | DataType::VarBinary => {
+             => {
                 self.put_byte_len_value(buf, value);
             }
 
-            DataType::BigVarBinary
+
+            | DataType::NVarChar
+            | DataType::NChar
+             => {
+                if self.size <= 4000{
+                   self.put_short_len_value(buf, value);
+                }
+                else{
+                    self.put_long_len_value(buf, value);
+                }
+            }
+
+            | DataType::Char
+            | DataType::VarChar
+            | DataType::Binary
+            | DataType::VarBinary
+            | DataType::BigVarBinary
             | DataType::BigVarChar
             | DataType::BigBinary
             | DataType::BigChar
-            | DataType::NVarChar
-            | DataType::NChar
             | DataType::Xml
             | DataType::UserDefined => {
                 self.put_short_len_value(buf, value);
@@ -489,7 +596,7 @@ impl TypeInfo {
             0xFFFF
         } else {
             (buf.len() - offset - 2) as u16
-        };
+        };        
 
         buf[offset..(offset + 2)].copy_from_slice(&size.to_le_bytes());
     }
@@ -503,7 +610,7 @@ impl TypeInfo {
         } else {
             (buf.len() - offset - 4) as u32
         };
-
+        buf.extend(&0_u32.to_le_bytes());
         buf[offset..(offset + 4)].copy_from_slice(&size.to_le_bytes());
     }
 

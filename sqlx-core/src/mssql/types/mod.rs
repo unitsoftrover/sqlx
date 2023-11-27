@@ -8,6 +8,8 @@ mod int;
 mod str;
 mod uint;
 mod decimal;
+// mod binary;
+mod bit_vec;
 
 #[cfg(feature = "chrono")]
 mod chrono;
