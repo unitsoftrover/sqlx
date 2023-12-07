@@ -113,8 +113,8 @@ impl_any_type!(chrono::NaiveDate);
 impl_any_type!(chrono::NaiveTime);
 #[cfg(all(
     feature = "chrono",
-    any(feature = "mysql", feature = "sqlite", feature = "postgres"),
-    not(feature = "mssql")
+    any(feature = "mysql", feature = "sqlite", feature = "postgres", feature = "mssql"),
+    // not(feature = "mssql")
 ))]
 impl_any_type!(chrono::NaiveDateTime);
 #[cfg(all(
@@ -145,8 +145,8 @@ impl_any_encode!(chrono::NaiveDate);
 impl_any_encode!(chrono::NaiveTime);
 #[cfg(all(
     feature = "chrono",
-    any(feature = "mysql", feature = "sqlite", feature = "postgres"),
-    not(feature = "mssql")
+    any(feature = "mysql", feature = "sqlite", feature = "postgres",feature = "mssql"),
+    // not(feature = "mssql")
 ))]
 impl_any_encode!(chrono::NaiveDateTime);
 #[cfg(all(
@@ -177,8 +177,8 @@ impl_any_decode!(chrono::NaiveDate);
 impl_any_decode!(chrono::NaiveTime);
 #[cfg(all(
     feature = "chrono",
-    any(feature = "mysql", feature = "sqlite", feature = "postgres"),
-    not(feature = "mssql")
+    any(feature = "mysql", feature = "sqlite", feature = "postgres", feature = "mssql"),
+    // not(feature = "mssql")
 ))]
 impl_any_decode!(chrono::NaiveDateTime);
 #[cfg(all(
@@ -193,3 +193,45 @@ impl_any_decode!(chrono::DateTime<chrono::offset::Utc>);
     not(feature = "mssql")
 ))]
 impl_any_decode!(chrono::DateTime<chrono::offset::Local>);
+
+#[cfg(all(
+    feature = "bigdecimal",
+    not(any(feature = "mysql", feature = "sqlite")),
+    any(feature = "mssql", feature = "postgres")
+))]
+impl_any_type!(bigdecimal::BigDecimal);
+
+#[cfg(all(
+    feature = "chrono",
+    not(any(feature = "mysql", feature = "sqlite")),
+    any(feature = "mssql", feature = "postgres")
+))]
+impl_any_encode!(bigdecimal::BigDecimal);
+
+#[cfg(all(
+    feature = "chrono",
+    not(any(feature = "mysql", feature = "sqlite")),
+    any(feature = "mssql", feature = "postgres")
+))]
+impl_any_decode!(bigdecimal::BigDecimal);
+
+#[cfg(all(
+    feature = "bigdecimal",
+    not(any(feature = "mysql", feature = "sqlite")),
+    any(feature = "mssql", feature = "postgres")
+))]
+impl_any_type!(bit_vec::BitVec);
+
+#[cfg(all(
+    feature = "chrono",
+    not(any(feature = "mysql", feature = "sqlite")),
+    any(feature = "mssql", feature = "postgres")
+))]
+impl_any_encode!(bit_vec::BitVec);
+
+#[cfg(all(
+    feature = "chrono",
+    not(any(feature = "mysql", feature = "sqlite")),
+    any(feature = "mssql", feature = "postgres")
+))]
+impl_any_decode!(bit_vec::BitVec);
