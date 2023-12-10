@@ -307,10 +307,20 @@ impl TypeInfo {
             | DataType::Binary
             | DataType::VarBinary
             | DataType::BigVarBinary 
-            | DataType::BigBinary => {
-                buf.extend(&(self.size as u16).to_le_bytes());
+            | DataType::BigBinary
+             => {
+                // buf.extend(&(self.size as u16).to_le_bytes());                
+                if self.size <= 8000 && self.size != 0 {
+                    buf.extend(8000_u16.to_le_bytes());
+                }
+                else{
+                    buf.extend(&[0xff_u8; 2]);
+
+                    // we cannot cheaply predetermine the length of the UCS2 string beforehand
+                    // (2 * bytes(UTF8) is not always right) - so just let the SQL server handle it
+                    buf.extend(0xffff_ffff_ffff_fffe_u64.to_le_bytes().as_slice());
+                }
             }
-            
             DataType::Char
             | DataType::VarChar
             | DataType::NVarChar 
@@ -346,6 +356,7 @@ impl TypeInfo {
             DataType::BigVarChar
             | DataType::BigChar
             | DataType::NText
+            | DataType::Image
              => {
                 buf.extend(&[0xff_u8; 2]);
                 // buf.extend(&[0u8; 5]);
@@ -405,7 +416,13 @@ impl TypeInfo {
                 if size == 0 || size == 0xFF {
                     None
                 } else {
-                    Some(buf.split_to(size as usize))
+                    let data = buf.split_to(size as usize);
+                    if self.ty == DataType::DateTimeOffsetN{
+                        println!("DateTimeOffsetN:{:?}", data);
+                        let slice = unsafe{std::slice::from_raw_parts(data.as_ptr(), data.len())};
+                        println!("DateTimeOffsetN: slice{:?}", slice);
+                    }
+                    Some(data)
                 }
             }
 
@@ -536,11 +553,22 @@ impl TypeInfo {
                 self.put_byte_len_value(buf, value);
             }
 
-
             | DataType::NVarChar
             | DataType::NChar
-             => {
+             => {                
                 if self.size <= 4000{
+                   self.put_short_len_value(buf, value);
+                }
+                else{
+                    self.put_long_len_value(buf, value);
+                }
+            }
+            | DataType::Binary
+            | DataType::VarBinary
+            | DataType::BigVarBinary
+            | DataType::BigBinary
+             => {                
+                if self.size <= 8000 && self.size != 0{
                    self.put_short_len_value(buf, value);
                 }
                 else{
@@ -550,11 +578,7 @@ impl TypeInfo {
 
             | DataType::Char
             | DataType::VarChar
-            | DataType::Binary
-            | DataType::VarBinary
-            | DataType::BigVarBinary
             | DataType::BigVarChar
-            | DataType::BigBinary
             | DataType::BigChar
             | DataType::Xml
             | DataType::UserDefined => {
@@ -659,6 +683,13 @@ impl TypeInfo {
             DataType::Numeric => "NUMERIC",
             DataType::NumericN => "NUMERICN",
 
+            DataType::DateTimeOffsetN => "DATETIMEOFFSETN",
+            DataType::TimeN =>"TIMEN",
+            DataType::BigVarBinary =>"BIGVARBINARY",
+            DataType::BigBinary =>"BIGVARBINARY",
+            DataType::Image =>"IMAGE",
+            DataType::Binary =>"BINARY",
+            DataType::VarBinary =>"VARBINARY",
             _ => unimplemented!("name: unsupported data type {:?}", self.ty),
         }
     }
@@ -749,7 +780,27 @@ impl TypeInfo {
             DataType::NumericN => {
                 s.push_str("numericn");
             }
-
+            DataType::DateTimeOffsetN => {
+                s.push_str("datetimeoffset(7)");
+            }
+            DataType::TimeN => {
+                s.push_str("time(7)");                
+            }
+            DataType::BigVarBinary=>{
+                s.push_str("varbinary(MAX)");                
+            }
+            DataType::BigBinary=>{
+                s.push_str("varbinary(MAX)");                
+            }
+            DataType::Image=>{
+                s.push_str("image");                
+            }
+            DataType::Binary=>{
+                s.push_str("binary");                
+            }
+            DataType::VarBinary=>{
+                s.push_str("varbinary");                
+            }
             _ => unimplemented!("fmt: unsupported data type {:?}", self.ty),
         }
     }

@@ -29,8 +29,12 @@ impl MssqlArguments {
         self.data.put_b_varchar(name); // [ParamName]
         self.data.push(0); // [StatusFlags]
 
+        let offset = self.data.len();
         ty.0.put(&mut self.data); // [TYPE_INFO]       
         ty.0.put_value(&mut self.data, value); // [ParamLenData]
+        if name == "@P1"{
+            println!("field data:{:?}", &self.data[offset..self.data.len()])
+        }
     }
 
     pub(crate) fn add_unnamed<'q, T: Encode<'q, Mssql> + Type<Mssql>>(&mut self, value: T) {
@@ -92,13 +96,16 @@ impl MssqlArguments {
         declarations.push(' ');
         ty.0.fmt(declarations);
 
+        let offset = data.len();
         // write out the parameter
-
         data.put_b_varchar(name); // [ParamName]
         data.push(0); // [StatusFlags]
 
         ty.0.put(data); // [TYPE_INFO]
         ty.0.put_value(data, value); // [ParamLenData]
+        // if name == "@P1"{
+        //     println!("field data:{:?}", &data[offset..data.len()])
+        // }
     }
 }
 
