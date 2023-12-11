@@ -265,7 +265,16 @@ impl TypeInfo {
 
     // writes a TYPE_INFO to the buffer
     pub(crate) fn put(&self, buf: &mut Vec<u8>) {
-        buf.push(self.ty as u8);
+        if self.ty == DataType::Image 
+        || self.ty == DataType::VarBinary 
+        || self.ty == DataType::Binary
+        || self.ty == DataType::BigBinary
+        {
+            buf.push(DataType::BigVarBinary as u8);
+        }
+        else{
+            buf.push(self.ty as u8);
+        }
 
         match self.ty {
             DataType::Null
@@ -308,6 +317,7 @@ impl TypeInfo {
             | DataType::VarBinary
             | DataType::BigVarBinary 
             | DataType::BigBinary
+            | DataType::Image
              => {
                 // buf.extend(&(self.size as u16).to_le_bytes());                
                 if self.size <= 8000 && self.size != 0 {
@@ -355,8 +365,7 @@ impl TypeInfo {
 
             DataType::BigVarChar
             | DataType::BigChar
-            | DataType::NText
-            | DataType::Image
+            | DataType::NText            
              => {
                 buf.extend(&[0xff_u8; 2]);
                 // buf.extend(&[0u8; 5]);
@@ -567,7 +576,8 @@ impl TypeInfo {
             | DataType::VarBinary
             | DataType::BigVarBinary
             | DataType::BigBinary
-             => {                
+            | DataType::Image
+             => {
                 if self.size <= 8000 && self.size != 0{
                    self.put_short_len_value(buf, value);
                 }
@@ -585,9 +595,9 @@ impl TypeInfo {
                 self.put_short_len_value(buf, value);
             }
 
-            DataType::Text | DataType::Image | DataType::NText | DataType::Variant => {
+            DataType::Text | DataType::NText | DataType::Variant => {
                 self.put_long_len_value(buf, value);
-            }
+            }            
         }
     }
 
@@ -637,6 +647,7 @@ impl TypeInfo {
         buf.extend(&0_u32.to_le_bytes());
         buf[offset..(offset + 4)].copy_from_slice(&size.to_le_bytes());
     }
+
 
     pub(crate) fn name(&self) -> &'static str {
         match self.ty {

@@ -22,6 +22,7 @@ impl Type<Mssql> for str {
                 | DataType::BigChar
                 | DataType::Char
                 | DataType::NText
+                | DataType::Text
         )
     }
 }

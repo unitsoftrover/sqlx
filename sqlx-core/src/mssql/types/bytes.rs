@@ -1,5 +1,3 @@
-use bytes::BufMut;
-
 use crate::decode::Decode;
 use crate::encode::{Encode, IsNull};
 use crate::error::BoxDynError;
@@ -9,7 +7,7 @@ use crate::types::Type;
 
 impl Type<Mssql> for [u8] {
     fn type_info() -> MssqlTypeInfo {
-        MssqlTypeInfo(TypeInfo::new(DataType::BigVarBinary, 0))
+        MssqlTypeInfo(TypeInfo::new(DataType::BigBinary, 0))
     }
 
     fn compatible(ty: &MssqlTypeInfo) -> bool {
@@ -18,6 +16,8 @@ impl Type<Mssql> for [u8] {
             DataType::BigBinary
             | DataType::BigVarBinary
             | DataType::Image
+            | DataType::Binary
+            | DataType::VarBinary
         )
     }
 }
