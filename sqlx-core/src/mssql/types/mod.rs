@@ -11,7 +11,7 @@ mod decimal;
 // mod binary;
 mod bit_vec;
 mod bytes;
-pub use bytes::ToSqlValue;
+pub use bytes::{ToSqlValue, VecBin, SliceBin};
 
 #[cfg(feature = "chrono")]
 mod chrono;

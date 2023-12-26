@@ -69,3 +69,12 @@ impl ToSqlValue for Vec<u8>{
     }
 }
 
+impl ToSqlValue for [u8]{
+    fn to_string(&self)->String {
+        let vec : Vec<_> = self.iter().map(|item|format!("{:02x}", item)).collect();
+        "0x".to_string() + &vec.join("")
+    }
+}
+
+pub type VecBin = Vec<u8>;
+pub type SliceBin = [u8];
